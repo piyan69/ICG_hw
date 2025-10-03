@@ -23,6 +23,7 @@ const float WAVE_FREQUENCY = 1.5f;
 
 int SCR_WIDTH = INITIAL_SCR_WIDTH;
 int SCR_HEIGHT = INITIAL_SCR_HEIGHT;
+glm::mat4 baseModel;
 
 // Global objects
 Shader* shader = nullptr;
@@ -41,7 +42,7 @@ struct Fish {
     glm::vec3 color = glm::vec3(1.0f, 0.5f, 0.3f);
 };
 
-struct SeaweedSegment {
+struct SeaweedSegment {  //This is a node
     glm::vec3 localPos;
     glm::vec3 color;
     float phase;
@@ -49,7 +50,7 @@ struct SeaweedSegment {
     SeaweedSegment* next = nullptr;
 };
 
-struct Seaweed {
+struct Seaweed {  //This is a linked list
     glm::vec3 basePosition;
     SeaweedSegment* rootSegment = nullptr;
     float swayOffset = 0.0f;
@@ -126,10 +127,15 @@ int main() {
     glDepthFunc(GL_LEQUAL);
     // Initialize Object and Shader
     init();
+    glm::mat4 view = glm::lookAt(glm::vec3(0.0f,10.0f,25.0f),glm::vec3(0.0f,8.0f,0.0f),glm::vec3(0.0f,1.0f,0.0f));
+    glm::mat4 projection = glm::perspective(glm::radians(45.0f),(float)SCR_WIDTH/(float)SCR_HEIGHT,0.1f,1000.0f);
+    
+    //Initialze acquarium
     initializeAquarium();
 
     float lastFrame = glfwGetTime();
-
+    //Initialze view,projection matrix
+   
     while (!glfwWindowShouldClose(window)) {
         // Calculate delta time for the usage of animation
         float currentFrame = glfwGetTime();
@@ -164,13 +170,10 @@ int main() {
 
         // TODO: Create model, view, and perspective matrix
         
-        glm::mat4 view = glm::lookAt(glm::vec3(0.0f,10.0f,25.0f),glm::vec3(0.0f,8.0f,0.0f),glm::vec3(0.0f,1.0f,0.0f));
-        glm::mat4 projection = glm::perspective(glm::radians(45.0f),(float)SCR_WIDTH/(float)SCR_HEIGHT,0.1f,1000.0f);
-
+        
 
         // TODO: Aquarium Base
-        glm::mat4 baseModel(1.0f);
-        baseModel = glm::scale(baseModel,glm::vec3(70.0f,1.0f,40.0f));
+        
         drawModel("cube",baseModel,view,projection,glm::vec3(0.9f,0.8f,0.6f));
         
         // TODO: Draw seaweeds with hierarchical structure and wave motion
@@ -412,6 +415,34 @@ void updateSchoolFish(float deltaTime) {
 
 void initializeAquarium() {
     srand(static_cast<unsigned int>(time(nullptr)));
+    baseModel = glm::mat4(1.0f);
+    baseModel = glm::scale(baseModel,glm::vec3(70.0f,1.0f,40.0f));
+
+    //initialize seaweeds
+    std::vector<glm::vec3> seaweedsPositions ={
+        glm::vec3(7.0f,0.0f,0.0f),
+        glm::vec3(-7.0f,0.0f,-10.0f),
+        glm::vec3(-7.0f,0.0f,5.0f)
+    };
+    const int numOfSegment = 7;
+    const float segmentHeight = 1.5f;
+    const float delayPerSegment = 0.3f;
+    for(const auto& pos:seaweedsPositions){
+        Seaweed seaweed;
+        seaweed.basePosition = pos;
+        SeaweedSegment * prev = nullptr;
+        for(int i =0 ;i<numOfSegment;++i){
+            SeaweedSegment * newSeg = new SeaweedSegment();
+            if(prev == nullptr){
+                seaweed.rootSegment = newSeg;            
+            }
+            newSeg->localPos =seaweed.basePosition+glm::vec3(0.0f,segmentHeight*i,0.0f);
+
+
+        }
+    }
+
+
 
     // You can init the aquarium elements here
     // e.g.
