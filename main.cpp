@@ -49,6 +49,7 @@ struct SeaweedSegment {  //This is a node
     glm::vec3 scale;
     SeaweedSegment* next = nullptr;
 };
+const float segmentHeight = 2.0f;
 
 struct Seaweed {  //This is a linked list
     glm::vec3 basePosition;
@@ -183,7 +184,23 @@ int main() {
         // delayPhase is different for each segment
         // the deeper the segment is, the larger the delayPhase is.
         // so that you can create a forward wave motion.
-        
+        const float maxSwing = 0.1f;
+        const float omega = 1.5f;
+        for(const auto& seaweed : seaweeds){
+            glm::mat4 parentModel = glm::translate(glm::mat4(1.0f),seaweed.basePosition);
+            SeaweedSegment * currSeg = seaweed.rootSegment;
+            while(currSeg!=nullptr){
+                float swing = maxSwing*sin(omega*globalTime+currSeg->phase);
+                glm::mat4 currentModel = parentModel;
+                currentModel = glm::rotate(currentModel,swing,glm::vec3(0.0f,0.0f,1.0f));
+                glm::mat4 drawMatrix = glm::translate(currentModel,glm::vec3(0.0f,segmentHeight*0.5f,0.0f));
+                drawMatrix = glm::scale(drawMatrix,currSeg->scale);
+                drawModel("cube",drawMatrix,view,projection,currSeg->color);
+                parentModel = glm::translate(currentModel,currSeg->localPos);  //localPos是高度為segmentHeight的與y軸平行向量
+                currSeg = currSeg->next;
+
+            }
+        }
 
         // TODO: Draw school of fish
         // The fish movement logic is implemented.
@@ -414,6 +431,8 @@ void updateSchoolFish(float deltaTime) {
 
 
 void initializeAquarium() {
+    glm::mat4 view = glm::lookAt(glm::vec3(0.0f,10.0f,25.0f),glm::vec3(0.0f,8.0f,0.0f),glm::vec3(0.0f,1.0f,0.0f));
+    glm::mat4 projection = glm::perspective(glm::radians(45.0f),(float)SCR_WIDTH/(float)SCR_HEIGHT,0.1f,1000.0f);
     srand(static_cast<unsigned int>(time(nullptr)));
     baseModel = glm::mat4(1.0f);
     baseModel = glm::scale(baseModel,glm::vec3(70.0f,1.0f,40.0f));
@@ -425,18 +444,27 @@ void initializeAquarium() {
         glm::vec3(-7.0f,0.0f,5.0f)
     };
     const int numOfSegment = 7;
-    const float segmentHeight = 1.5f;
+   
     const float delayPerSegment = 0.3f;
     for(const auto& pos:seaweedsPositions){
+        float maxSwing = 0.25f;
+        float omega = 1.8f;
         Seaweed seaweed;
         seaweed.basePosition = pos;
         SeaweedSegment * prev = nullptr;
         for(int i =0 ;i<numOfSegment;++i){
             SeaweedSegment * newSeg = new SeaweedSegment();
-            if(prev == nullptr){
-                seaweed.rootSegment = newSeg;            
-            }
-            newSeg->localPos =seaweed.basePosition+glm::vec3(0.0f,segmentHeight*i,0.0f);
+            newSeg->localPos = glm::vec3(0.0f,segmentHeight,0.0f);
+            newSeg->color = glm::vec3(0.0f,0.5f,0.0f);
+            newSeg->phase = i*delayPerSegment;
+            newSeg->scale = glm::vec3(1.0f,2.0f,1.0f);
+            newSeg->next = nullptr;
+            if(prev == nullptr)
+                seaweed.rootSegment = newSeg;
+            else
+                prev->next = newSeg;   
+            prev = newSeg;
+            seaweeds.push_back(seaweed);
 
 
         }
