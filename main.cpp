@@ -20,6 +20,7 @@ const float AQUARIUM_BOUNDARY=15.0f;
 const float AQUARIUM_DEPTH=15.0f;
 const double PI = 3.141592653589793;
 const float WHRATIO = 800.0f/600.0f;
+const float EPISILON = 1e-2f;
 // Animation constants
 const float TAIL_ANIMATION_SPEED = 5.0f;
 const float WAVE_FREQUENCY = 1.5f;
@@ -429,17 +430,35 @@ void updateSchoolFish(float deltaTime) {
         // fish from escaping the visible scene.
         // atan2 calculates the angle of the fish's direction vector on the XZ plane.
         // To make the fish movement natural.
-        if (fish.position.x > (25-fish.position.z)*std::tan(fov*0.5*PI/180.0f)*WHRATIO-2.0f || fish.position.x < -(25-fish.position.z)*std::tan(fov*0.5*PI/180.0f)*WHRATIO + 2.0f) {
+        if (fish.position.x > (25-fish.position.z)*std::tan(fov*0.5*PI/180.0f)*WHRATIO-2.0f ) {
             fish.direction.x *= -1;
             fish.angle = atan2(-fish.direction.z, fish.direction.x);
+            fish.position.x = fish.position.x-EPISILON;
         }
-        if(fish.position.z>AQUARIUM_DEPTH-3.0f || fish.position.z<-AQUARIUM_DEPTH+5.0f){
+        if( fish.position.x < -(25-fish.position.z)*std::tan(fov*0.5*PI/180.0f)*WHRATIO + 2.0f){
+            fish.direction.x *= -1;
+            fish.angle = atan2(-fish.direction.z, fish.direction.x);
+            fish.position.x = fish.position.x+EPISILON;
+        }
+        if(fish.position.z>AQUARIUM_DEPTH-3.0f ){
             fish.direction.z*=-1;
             fish.angle = atan2(-fish.direction.z, fish.direction.x);
+            fish.position.z =  fish.position.z-EPISILON;
         }
-        if(fish.position.y>(25-fish.position.z)*std::tan(fov*0.5*PI/180.0f)-2.0f||fish.position.y<-(25-fish.position.z)*std::tan(fov*0.5*PI/180.0f)+2.0f){
+        if( fish.position.z<-AQUARIUM_DEPTH+5.0f){
+            fish.direction.z*=-1;
+            fish.angle = atan2(-fish.direction.z, fish.direction.x);
+            fish.position.z =  fish.position.z+EPISILON;
+        }
+        if(fish.position.y>(25-fish.position.z)*std::tan(fov*0.5*PI/180.0f)-2.0f){
             fish.direction.y*=-1;
             fish.angle = atan2(-fish.direction.z, fish.direction.x);
+            fish.position.y =  fish.position.y-EPISILON;
+        }
+        if(fish.position.y<-(25-fish.position.z)*std::tan(fov*0.5*PI/180.0f)+2.0f){
+            fish.direction.y*=-1;
+            fish.angle = atan2(-fish.direction.z, fish.direction.x);
+            fish.position.y =  fish.position.y+EPISILON;
         }
     }
 }
