@@ -15,8 +15,11 @@
 // Settings
 const int INITIAL_SCR_WIDTH = 800;
 const int INITIAL_SCR_HEIGHT = 600;
-const float AQUARIUM_BOUNDARY = 15.0f;
-
+const float fov = 45.0f;
+const float AQUARIUM_BOUNDARY=15.0f;
+const float AQUARIUM_DEPTH=15.0f;
+const double PI = 3.141592653589793;
+const float WHRATIO = 800.0f/600.0f;
 // Animation constants
 const float TAIL_ANIMATION_SPEED = 5.0f;
 const float WAVE_FREQUENCY = 1.5f;
@@ -49,7 +52,7 @@ struct SeaweedSegment {  //This is a node
     glm::vec3 scale;
     SeaweedSegment* next = nullptr;
 };
-const float segmentHeight = 2.0f;
+const float segmentHeight =1.5f;
 
 struct Seaweed {  //This is a linked list
     glm::vec3 basePosition;
@@ -205,10 +208,14 @@ int main() {
         // TODO: Draw school of fish
         // The fish movement logic is implemented.
         // All you need is to set up the position like the example in initAquarium()
+        
         for (const auto& fish : schoolFish) {
+            
+            
+
             glm::mat4 model(1.0f);
             model = glm::translate(model, fish.position);
-            model = glm::rotate(model, fish.angle, glm::vec3(0.0f, 1.0f, 0.0f));
+            model = glm::rotate(model, fish.angle, glm::vec3(0.0f, 1.0f, 0.0f));   //原本的魚頭是朝向+x方向，因此需要計算初始的tan角來決定魚頭的朝向
             model = glm::scale(model, fish.scale);
             drawModel(fish.fishType, model, view, projection, fish.color);
         }
@@ -422,8 +429,16 @@ void updateSchoolFish(float deltaTime) {
         // fish from escaping the visible scene.
         // atan2 calculates the angle of the fish's direction vector on the XZ plane.
         // To make the fish movement natural.
-        if (fish.position.x > AQUARIUM_BOUNDARY - 2.0f || fish.position.x < -AQUARIUM_BOUNDARY + 2.0f) {
+        if (fish.position.x > (25-fish.position.z)*std::tan(fov*0.5*PI/180.0f)*WHRATIO-2.0f || fish.position.x < -(25-fish.position.z)*std::tan(fov*0.5*PI/180.0f)*WHRATIO + 2.0f) {
             fish.direction.x *= -1;
+            fish.angle = atan2(-fish.direction.z, fish.direction.x);
+        }
+        if(fish.position.z>AQUARIUM_DEPTH-3.0f || fish.position.z<-AQUARIUM_DEPTH+5.0f){
+            fish.direction.z*=-1;
+            fish.angle = atan2(-fish.direction.z, fish.direction.x);
+        }
+        if(fish.position.y>(25-fish.position.z)*std::tan(fov*0.5*PI/180.0f)-2.0f||fish.position.y<-(25-fish.position.z)*std::tan(fov*0.5*PI/180.0f)+2.0f){
+            fish.direction.y*=-1;
             fish.angle = atan2(-fish.direction.z, fish.direction.x);
         }
     }
@@ -457,7 +472,7 @@ void initializeAquarium() {
             newSeg->localPos = glm::vec3(0.0f,segmentHeight,0.0f);
             newSeg->color = glm::vec3(0.0f,0.5f,0.0f);
             newSeg->phase = i*delayPerSegment;
-            newSeg->scale = glm::vec3(1.0f,2.0f,1.0f);
+            newSeg->scale = glm::vec3(1.0f,segmentHeight,1.0f);
             newSeg->next = nullptr;
             if(prev == nullptr)
                 seaweed.rootSegment = newSeg;
@@ -469,7 +484,28 @@ void initializeAquarium() {
 
         }
     }
-
+    const std::vector<std::pair<std::string, glm::vec3>> initialFishData = {
+            {"fish1", glm::vec3(0.0f, 15.0f, 0.0f)},
+            {"fish2", glm::vec3(7.0f, 3.0f, 0.0f)},
+            {"fish3", glm::vec3(-3.0f, 7.0f, -7.0f)}
+        };
+        std::vector<glm::vec3> colorVector={
+            glm::vec3(1.0f,0.5f,0.0f),
+            glm::vec3(0.0f,0.5f,1.0f),
+            glm::vec3(0.0f,0.73f,0.0f)
+        };
+        int colorIndex = 0;
+        for(const auto& data : initialFishData){
+            Fish newFish;
+            newFish.fishType = data.first;
+            newFish.position = data.second;
+            const float randomAngle = static_cast<float> (rand())/(RAND_MAX)*2*3.14159f;
+            newFish.direction = glm::vec3(cos(randomAngle),0.0f,sin(randomAngle)); 
+            newFish.color = colorVector[colorIndex];
+            colorIndex++;
+            newFish.angle = atan2(-(newFish.direction.z),newFish.direction.x);
+            schoolFish.push_back(newFish);
+        }
 
 
     // You can init the aquarium elements here
