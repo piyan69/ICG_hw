@@ -20,7 +20,7 @@ const float AQUARIUM_BOUNDARY=15.0f;
 const float AQUARIUM_DEPTH=15.0f;
 const double PI = 3.141592653589793;
 const float WHRATIO = 800.0f/600.0f;
-const float EPISILON = 1e-2f;
+const float EPISILON = 3e-2f;
 // Animation constants
 const float TAIL_ANIMATION_SPEED = 5.0f;
 const float WAVE_FREQUENCY = 1.5f;
@@ -41,7 +41,7 @@ struct Fish {
     glm::vec3 direction;
     std::string fishType = "fish1";
     float angle = 0.0f;
-    float speed = 3.0f;
+    float speed = 5.0f;
     glm::vec3 scale = glm::vec3(2.0f, 2.0f, 2.0f);
     glm::vec3 color = glm::vec3(1.0f, 0.5f, 0.3f);
 };
@@ -384,11 +384,19 @@ void cleanup() {
 
 void drawPlayerFish(const glm::vec3& position, float angle, float tailPhase,
     const glm::mat4& view, const glm::mat4& projection, bool mouthOpen, float deltaTime) {
-    glm::mat4 model(1.0f);
-
     // TODO: Draw body using cube (main body)
-  
+    glm::mat4 model(1.0f);
+    glm::mat4 bodyModel = glm::translate(model,position);
+    bodyModel = glm::rotate(bodyModel, angle, glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::mat4 bodyDrawModel = glm::scale(bodyModel, glm::vec3(5.0f, 3.0f, 2.5f)); // Elongated for shark body
+    drawModel("cube", bodyDrawModel, view, projection, glm::vec3(0.4f, 0.4f, 0.6f)); // Dark blue-gray shark color
+
+    
     // TODO: Draw head and Mouth using cube with mouth open/close feature
+    glm::mat4 headModel = glm::translate(bodyModel,glm::vec3(3.5f,1.0f,0.0f));
+    headModel = glm::rotate(headModel,glm::radians(-10.0f),glm::vec3(0.0f,0.0f,1.0f));
+    headModel = glm::scale(headModel,glm::vec3(2.5f,1.5f,1.25f));
+    drawModel("cube",headModel, view, projection, glm::vec3(0.4f, 0.4f, 0.6f)); // Dark blue-gray shark color
     if (mouthOpen) {
         // TODO: head and mouth model matrix adjustment
 
@@ -423,19 +431,19 @@ void drawPlayerFish(const glm::vec3& position, float angle, float tailPhase,
 void updateSchoolFish(float deltaTime) {
     for (auto& fish : schoolFish) {
         // Move fish in their direction
-        fish.position += fish.direction * fish.speed * deltaTime;
+        // fish.position += fish.direction * fish.speed * deltaTime;
         
         // Bounce off walls
         // The Movement is clamped within aquarium boundaries to prevent
         // fish from escaping the visible scene.
         // atan2 calculates the angle of the fish's direction vector on the XZ plane.
         // To make the fish movement natural.
-        if (fish.position.x > (25-fish.position.z)*std::tan(fov*0.5*PI/180.0f)*WHRATIO-2.0f ) {
+        if (fish.position.x > (25-fish.position.z)*std::tan(fov*0.5*PI/180.0f)*WHRATIO-3.0f) {
             fish.direction.x *= -1;
             fish.angle = atan2(-fish.direction.z, fish.direction.x);
             fish.position.x = fish.position.x-EPISILON;
         }
-        if( fish.position.x < -(25-fish.position.z)*std::tan(fov*0.5*PI/180.0f)*WHRATIO + 2.0f){
+        if( fish.position.x < -(25-fish.position.z)*std::tan(fov*0.5*PI/180.0f)*WHRATIO+3.0f ){
             fish.direction.x *= -1;
             fish.angle = atan2(-fish.direction.z, fish.direction.x);
             fish.position.x = fish.position.x+EPISILON;
@@ -445,17 +453,17 @@ void updateSchoolFish(float deltaTime) {
             fish.angle = atan2(-fish.direction.z, fish.direction.x);
             fish.position.z =  fish.position.z-EPISILON;
         }
-        if( fish.position.z<-AQUARIUM_DEPTH+5.0f){
+        if( fish.position.z<-AQUARIUM_DEPTH+7.0f){
             fish.direction.z*=-1;
             fish.angle = atan2(-fish.direction.z, fish.direction.x);
             fish.position.z =  fish.position.z+EPISILON;
         }
-        if(fish.position.y>(25-fish.position.z)*std::tan(fov*0.5*PI/180.0f)-2.0f){
+        if(fish.position.y>(25-fish.position.z)*std::tan(fov*0.5*PI/180.0f)){
             fish.direction.y*=-1;
             fish.angle = atan2(-fish.direction.z, fish.direction.x);
             fish.position.y =  fish.position.y-EPISILON;
         }
-        if(fish.position.y<-(25-fish.position.z)*std::tan(fov*0.5*PI/180.0f)+2.0f){
+        if(fish.position.y<-(25-fish.position.z)*std::tan(fov*0.5*PI/180.0f)+3.0f){
             fish.direction.y*=-1;
             fish.angle = atan2(-fish.direction.z, fish.direction.x);
             fish.position.y =  fish.position.y+EPISILON;
@@ -514,6 +522,7 @@ void initializeAquarium() {
             glm::vec3(0.0f,0.73f,0.0f)
         };
         int colorIndex = 0;
+        schoolFish.clear();
         for(const auto& data : initialFishData){
             Fish newFish;
             newFish.fishType = data.first;
