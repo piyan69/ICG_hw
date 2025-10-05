@@ -69,7 +69,7 @@ struct playerFish {
     bool mouthOpen = false; 
     float tailAnimation = 0.0f;
     // for tooth
-    float duration = 1.0f;     
+    float duration = 1.5f;     
     float elapsed = 0.0f;    
     struct tooth{
         glm::vec3 pos0, pos1;
@@ -88,7 +88,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 void processInput(GLFWwindow* window, float deltaTime);
 void drawModel(std::string type, const glm::mat4& model, const glm::mat4& view, const glm::mat4& projection, const glm::vec3& color);
 void drawPlayerFish(const glm::vec3& position, float angle, float tailPhase,
-                    const glm::mat4& view, const glm::mat4& projection, bool mouthOpen, float deltaTime);
+                    const glm::mat4& view, const glm::mat4& projection,  float deltaTime);
 void updateSchoolFish(float deltaTime);
 void initializeAquarium();
 void cleanup();
@@ -250,7 +250,7 @@ int main() {
         // which is provided as playerFish.tailAnimation that would act as tail phase in the drawPlayerFish().
         // To make the tail motion, follow the formula: Amplitude * sin(tailPhase);
         drawPlayerFish(playerFish.position, playerFish.angle, playerFish.tailAnimation,
-                        view, projection, playerFish.mouthOpen, deltaTime);
+                        view, projection, deltaTime);
 
         // TODO: Implement input processing
         processInput(window, deltaTime);
@@ -307,10 +307,12 @@ void processInput(GLFWwindow* window, float deltaTime) {
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS){
         
     }
-
+  
+    
     // TODO: Keep fish within aquarium bounds
 }
-
+const float mouthDuration = 1.0f;  // 你說大約 1 秒
+const float mouthElapsed  = 0.0f;  // 目前進度秒數
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     // The action is one of GLFW_PRESS, GLFW_REPEAT or GLFW_RELEASE. 
@@ -321,8 +323,13 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     }
+    if (key == GLFW_KEY_M && action == GLFW_PRESS) {
+       playerFish.mouthOpen = !playerFish.mouthOpen;  // 或依你需求改成 true/false
 
+    }
     // TODO: Implement mouth toggle logic
+
+
 }
 
 void drawModel(std::string type, const glm::mat4& model, const glm::mat4& view, const glm::mat4& projection, const glm::vec3& color) {
@@ -383,7 +390,7 @@ void cleanup() {
 }
 
 void drawPlayerFish(const glm::vec3& position, float angle, float tailPhase,
-    const glm::mat4& view, const glm::mat4& projection, bool mouthOpen, float deltaTime) {
+    const glm::mat4& view, const glm::mat4& projection, float deltaTime) {
     // TODO: Draw body using cube (main body)
     glm::mat4 model(1.0f);
     glm::mat4 bodyModel = glm::translate(model,position);
@@ -392,39 +399,151 @@ void drawPlayerFish(const glm::vec3& position, float angle, float tailPhase,
     drawModel("cube", bodyDrawModel, view, projection, glm::vec3(0.4f, 0.4f, 0.6f)); // Dark blue-gray shark color
 
     
-    // TODO: Draw head and Mouth using cube with mouth open/close feature
-    glm::mat4 headModel = glm::translate(bodyModel,glm::vec3(3.5f,1.0f,0.0f));
-    headModel = glm::rotate(headModel,glm::radians(-10.0f),glm::vec3(0.0f,0.0f,1.0f));
-    headModel = glm::scale(headModel,glm::vec3(2.5f,1.5f,1.25f));
-    drawModel("cube",headModel, view, projection, glm::vec3(0.4f, 0.4f, 0.6f)); // Dark blue-gray shark color
-    if (mouthOpen) {
+    
+    if (playerFish.mouthOpen) {
         // TODO: head and mouth model matrix adjustment
-
+        glm::mat4 headModel = glm::translate(bodyModel,glm::vec3(3.3f,1.0f,0.0f));
+        headModel = glm::rotate(headModel,glm::radians(20.0f),glm::vec3(0.0f,0.0f,1.0f));
+        glm::mat4 headDrawModel = glm::scale(headModel,glm::vec3(3.0f,1.75f,2.0f));
+        drawModel("cube",headDrawModel, view, projection,glm::vec3(0.4f, 0.4f, 0.6f) );
+        //mouth
+        glm:: mat4 mouthModel = glm::translate(bodyModel,glm::vec3(3.0f,-1.5f,0.0f));
+        mouthModel= glm::rotate(mouthModel,glm::radians(-20.0f),glm::vec3(0.0f,0.0f,1.0f));
+        glm::mat4 mouthDrawModel = glm::scale(mouthModel,glm::vec3(2.1f,1.0f,2.0f));
+        drawModel("cube",mouthDrawModel, view, projection, glm::vec3(142.0f/255.0f,142.0f/255.0f,142.0f/255.0f)); // Dark blue-gray shark color
         // TODO: Calculate elapse time for tooth animation
-       
+        if(playerFish.elapsed<playerFish.duration){
+            playerFish.elapsed+=deltaTime;
+        }
+        else{
+            playerFish.mouthOpen =!playerFish.mouthOpen;
+            playerFish.elapsed = 0.0f;
+        }
+        
+        
         // TODO: Upper teeth right
+        glm::mat4 UpperRightTeethModel = glm::translate(headModel,glm::vec3(1.0f,-0.4f,0.5f));
+        // UpperRightTeethModel = glm::scale(UpperRightTeethModel,glm::vec3(0.2f,1.0f,0.4f));
+        playerFish.toothUpperRight.pos0 = glm::vec3(UpperRightTeethModel * glm::vec4(0,0,0,1)); //牙齒的原點
         
+        glm::mat4 UpperRightTeethModel_plus = glm::translate(headModel,glm::vec3(1.0f,-1.375f,0.5f));  //為了得到pos1的matrix
+        playerFish.toothUpperRight.pos1 = glm::vec3(UpperRightTeethModel_plus * glm::vec4(0,0,0,1)); //牙齒最後的座標
+        float t  = glm::clamp(playerFish.elapsed / playerFish.duration, 0.0f, playerFish.duration);  //夾在0-1之間
+        glm::vec3 UpperRightTeethPosition = glm::mix(playerFish.toothUpperRight.pos0 
+        ,playerFish.toothUpperRight.pos1,t);
+        glm::mat4 UpperRightTeethDrawMatrix = glm::mat4(glm::mat3(headModel));
+        UpperRightTeethDrawMatrix[3] = glm::vec4(UpperRightTeethPosition, 1.0f);
+        UpperRightTeethDrawMatrix = glm::scale(UpperRightTeethDrawMatrix,glm::vec3(0.4f,1.0f,0.4f));
+        drawModel("cube",UpperRightTeethDrawMatrix, view, projection,glm::vec3(1.0f,1.0f,1.0f) );
+
+
+
+        //drawModel("cube",UpperRightTeethModel, view, projection,glm::vec3(1.0f,1.0f,1.0f) ); // Dark blue-gray shark color
+
         // TODO: Upper teeth left
-      
-        // TODO: Lower teeth right 
-       
-        // TODO: Lower teeth left
+        glm::mat4 UpperLeftTeethModel = glm::translate(headModel,glm::vec3(0.7f,-0.4f,-0.5f)); //要跟UpperLeftTeethModel_plus的兩個平移量相同
+        // UpperLeftTeethModel = glm::scale(UpperLeftTeethModel,glm::vec3(0.2f,1.0f,0.4f));
+        playerFish.toothUpperLeft.pos0 = glm::vec3(UpperLeftTeethModel * glm::vec4(0,0,0,1)); //牙齒的原點
+        glm::mat4 UpperLeftTeethModel_plus = glm::translate(headModel,glm::vec3(0.7f,-1.375f,-0.5f));  //為了得到pos1的matrix
+        playerFish.toothUpperLeft.pos1 = glm::vec3(UpperLeftTeethModel_plus* glm::vec4(0,0,0,1)); //牙齒最後的座標
         
-    } else {
+        glm::vec3 UpperLeftTeethPosition = glm::mix(playerFish.toothUpperLeft.pos0 
+        ,playerFish.toothUpperLeft.pos1,t);
+        glm::mat4 UpperLeftTeethDrawMatrix = glm::mat4(glm::mat3(headModel));
+        UpperLeftTeethDrawMatrix[3] = glm::vec4(UpperLeftTeethPosition,1.0f);
+        UpperLeftTeethDrawMatrix = glm::scale(UpperLeftTeethDrawMatrix,glm::vec3(0.4f,1.0f,0.4f));
+        drawModel("cube",UpperLeftTeethDrawMatrix, view, projection,glm::vec3(1.0f,1.0f,1.0f) );
+
+        // TODO: Lower teeth right 
+        // glm::mat4 UpperRightTeethModel = glm::translate(headModel,glm::vec3(1.0f,0.0f,0.5f));
+        glm::mat4 LowerRightTeethModel = glm::translate(mouthModel,glm::vec3(0.8f,0.0f,0.5f)); //x的平移量在想一下
+        playerFish.toothLowerRight.pos0 = glm::vec3(LowerRightTeethModel* glm::vec4(0,0,0,1));
+        glm::mat4 LowerRightTeethModel_plus = glm::translate(mouthModel,glm::vec3(1.0f,1.0f,0.5f));  //為了得到pos1的matrix
+        playerFish.toothLowerRight.pos1 = glm::vec3(LowerRightTeethModel_plus* glm::vec4(0,0,0,1));
+        glm::vec3 LowerRightTeethPosition = glm::mix(playerFish.toothLowerRight.pos0 
+        ,playerFish.toothLowerRight.pos1,t);
+         glm::mat4 LowerRightTeethDrawMatrix = glm::mat4(glm::mat3(mouthModel));
+        LowerRightTeethDrawMatrix[3] = glm::vec4(LowerRightTeethPosition,1.0f);
+        LowerRightTeethDrawMatrix = glm::scale( LowerRightTeethDrawMatrix,glm::vec3(0.4f,1.0f,0.4f));
+        drawModel("cube", LowerRightTeethDrawMatrix, view, projection,glm::vec3(1.0f,1.0f,1.0f) );
+
+        // TODO: Lower teeth left
+        glm::mat4 LowerLeftTeethModel = glm::translate(mouthModel,glm::vec3(0.8f,0.0f,-0.5f)); //x的平移量在想一下
+        playerFish.toothLowerLeft.pos0 = glm::vec3(LowerLeftTeethModel* glm::vec4(0,0,0,1));
+        glm::mat4 LowerLeftTeethModel_plus = glm::translate(mouthModel,glm::vec3(1.0f,1.0f,-0.5f));  //為了得到pos1的matrix
+        playerFish.toothLowerLeft.pos1 = glm::vec3(LowerLeftTeethModel_plus* glm::vec4(0,0,0,1));
+        glm::vec3 LowerLeftTeethPosition = glm::mix(playerFish.toothLowerLeft.pos0 
+        ,playerFish.toothLowerLeft.pos1,t);
+         glm::mat4 LowerLeftTeethDrawMatrix = glm::mat4(glm::mat3(mouthModel));
+        LowerLeftTeethDrawMatrix[3] = glm::vec4(LowerLeftTeethPosition,1.0f);
+        LowerLeftTeethDrawMatrix = glm::scale( LowerLeftTeethDrawMatrix,glm::vec3(0.4f,1.0f,0.4f));
+        drawModel("cube", LowerLeftTeethDrawMatrix, view, projection,glm::vec3(1.0f,1.0f,1.0f) );
+    } 
+    else {
+         // TODO: Draw head and Mouth using cube with mouth open/close feature
+        glm::mat4 headModel = glm::translate(bodyModel,glm::vec3(3.3f,0.5f,0.0f));
+        headModel = glm::rotate(headModel,glm::radians(-10.0f),glm::vec3(0.0f,0.0f,1.0f));
+        glm::mat4 headDrawModel = glm::scale(headModel,glm::vec3(3.0f,1.75f,2.0f));
+        drawModel("cube",headDrawModel, view, projection, glm::vec3(0.4f, 0.4f, 0.6f)); // Dark blue-gray shark color
+        //mouth
+        glm:: mat4 mouthModel = glm::translate(bodyModel,glm::vec3(3.5f,-0.5f,0.0f));
+        mouthModel= glm::rotate(mouthModel,glm::radians(10.0f),glm::vec3(0.0f,0.0f,1.0f));
+        mouthModel = glm::scale(mouthModel,glm::vec3(2.1f,1.0f,1.0f));
+        drawModel("cube",mouthModel, view, projection, glm::vec3(142.0f/255.0f,142.0f/255.0f,142.0f/255.0f)); // Dark blue-gray shark color
+        // glm::mat4 UpperLeftTeethModel = glm::translate(headModel,glm::vec3(1.25f,0.0f,-0.5f));
+        // UpperLeftTeethModel = glm::scale(UpperLeftTeethModel,glm::vec3(0.2f,1.0f,0.4f));
+        // glm::mat4 UpperRightTeethModel = glm::translate(headModel,glm::vec3(1.25f,0.0f,0.5f));
+        // UpperRightTeethModel = glm::scale(UpperRightTeethModel,glm::vec3(0.2f,1.0f,0.4f));
+        // drawModel("cube",UpperLeftTeethModel, view, projection,glm::vec3(1.0f,1.0f,1.0f) ); // Dark blue-gray shark color
+        // drawModel("cube",UpperRightTeethModel, view, projection,glm::vec3(1.0f,1.0f,1.0f)); // Dark blue-gray shark color
+   
+
         // TODO: head and mouth model matrix adjustment
     } 
 
     // TODO: Draw Eyes
- 
+    glm::mat4 eyesModel = glm::translate(bodyModel,glm::vec3(3.3f,0.67f,0.7f));
+    eyesModel = glm::scale(eyesModel,glm::vec3(0.5f,0.5f,1.0f));
+    drawModel("cube",eyesModel, view, projection, glm::vec3(142.0f/255.0f,142.0f/255.0f,142.0f/255.0f));
     // TODO: Draw Pupils
-
+    glm::mat4 pupilModel = glm::translate(bodyModel,glm::vec3(3.3f,0.67f,0.8f));
+    pupilModel = glm::scale(pupilModel,glm::vec3(0.25f,0.25f,1.0f));
+    drawModel("cube",pupilModel, view, projection, glm::vec3(0.0f,0.0f,0.0f));
     // TODO: Draw dorsal fin (top fin)
-
+    glm::mat4 dorsalFinModel= glm::translate(bodyModel,glm::vec3(0.75f,1.75f,0.0f));
+    dorsalFinModel= glm::rotate(dorsalFinModel,glm::radians(-45.0f),glm::vec3(0.0f,0.0f,1.0f));
+    dorsalFinModel = glm::scale(dorsalFinModel,glm::vec3(3.0f,1.0f,1.0f));
+    drawModel("cube",dorsalFinModel, view, projection, glm::vec3(0.4f, 0.4f, 0.6f));
     // TODO: Draw side fins (pectoral fins)
-
+    //first
+    glm::mat4 pectoralFinModel_1 = glm::translate(bodyModel,glm::vec3(0.9f,-1.35f,1.5f));
+    pectoralFinModel_1 = glm::rotate(pectoralFinModel_1,glm::radians(30.0f),glm::vec3(1.0f,0.0f,0.0f));
+    pectoralFinModel_1 = glm::rotate(pectoralFinModel_1,glm::radians(45.0f),glm::vec3(0.0f,1.0f,0.0f));
+    pectoralFinModel_1 = glm::scale(pectoralFinModel_1,glm::vec3(3.0f,0.3f,1.0f));
+    drawModel("cube", pectoralFinModel_1, view, projection, glm::vec3(0.4f, 0.4f, 0.6f));
+    //second
+    glm::mat4 pectoralFinModel_2= glm::translate(bodyModel,glm::vec3(0.9f,-1.35f,-1.5f));
+    pectoralFinModel_2 = glm::rotate(pectoralFinModel_2,glm::radians(-30.0f),glm::vec3(1.0f,0.0f,0.0f));
+    pectoralFinModel_2 = glm::rotate(pectoralFinModel_2,glm::radians(-45.0f),glm::vec3(0.0f,1.0f,0.0f));
+    pectoralFinModel_2 = glm::scale(pectoralFinModel_2,glm::vec3(3.0f,0.3f,1.0f));
+    drawModel("cube", pectoralFinModel_2, view, projection, glm::vec3(0.4f, 0.4f, 0.6f));
     // TODO: Draw hierarchical animated tail with multiple segments
-    
+    //first
+    glm::mat4 tailModel_1 = glm::translate(bodyModel,glm::vec3(-3.0f,0.0f,0.0f));
+    glm::mat4 tail_drawModel_1 = glm::scale(tailModel_1,glm::vec3(3.0f,1.5f,1.0f));
+    drawModel("cube", tail_drawModel_1, view, projection, glm::vec3(0.4f, 0.4f, 0.6f));
+    //second
+    glm::mat4 tailModel_2 = glm::translate(tailModel_1,glm::vec3(-3.0f,0.0f,0.0f));
+    glm::mat4 tail_drawModel_2  = glm::scale(tailModel_2,glm::vec3(3.0f,1.25f,1.0f));
+    drawModel("cube", tail_drawModel_2, view, projection, glm::vec3(0.4f, 0.4f, 0.6f));
+    //third
+    glm::mat4 tailModel_3 = glm::translate(tailModel_2,glm::vec3(-3.0f,0.0f,0.0f));
+    glm::mat4 tail_drawModel_3  = glm::scale(tailModel_3,glm::vec3(3.0f,1.0f,1.0f));
+    drawModel("cube", tail_drawModel_3, view, projection, glm::vec3(0.4f, 0.4f, 0.6f));
     // TODO: Draw tail fin at the end
+    glm::mat4 tailModel_4 = glm::translate(tailModel_3,glm::vec3(-2.0f,0.0f,0.0f));
+    glm::mat4 tail_drawModel_4  = glm::scale(tailModel_4,glm::vec3(2.0f,5.0f,1.0f));
+    drawModel("cube", tail_drawModel_4, view, projection, glm::vec3(0.4f, 0.4f, 0.6f));
  }
 
  
